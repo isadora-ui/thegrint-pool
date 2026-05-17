@@ -1,0 +1,24 @@
+{
+  "name": "TheGrint World Cup Pool 2026",
+  "short_name": "TheGrint Pool",
+  "description": "FIFA World Cup 2026 Sweepstakes — TheGrint",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1e28",
+  "theme_color": "#263d51",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
