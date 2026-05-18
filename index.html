@@ -278,6 +278,20 @@ nav {
   display:flex; align-items:center; gap:8px;
 }
 .toast.show { transform:translateY(0); opacity:1; }
+
+.paid-btn {
+  font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px;
+  border:none; cursor:pointer; font-family:inherit; transition:all 0.2s;
+}
+.paid-btn.yes { background:rgba(167,207,63,0.2); color:var(--green); border:1px solid var(--border2); }
+.paid-btn.no  { background:rgba(255,68,68,0.1); color:var(--red); border:1px solid rgba(255,68,68,0.3); }
+.prize-pool-box {
+  background:rgba(167,207,63,0.06); border:1px solid var(--border2);
+  border-radius:var(--radius-lg); padding:16px 20px; margin-bottom:1.5rem;
+  display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+}
+.prize-pool-total { font-size:32px; font-weight:800; color:var(--green); letter-spacing:-1px; }
+.prize-pool-label { font-size:12px; color:var(--text3); text-transform:uppercase; letter-spacing:0.1em; }
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:var(--bg2)}
 ::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:3px}
@@ -321,7 +335,10 @@ nav {
         <label class="form-label">Password</label>
         <input class="form-field" type="password" id="su-password" placeholder="Min. 8 characters">
       </div>
-      <button class="btn-auth" onclick="signUp()" id="btn-signup">Join the Pool</button>
+
+      <div style="background:rgba(167,207,63,0.08);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:13px;text-align:center;">
+        💵 Entry fee: <strong style="color:var(--green)">$20 per person</strong> — payment details sent separately
+      </div>      <button class="btn-auth" onclick="signUp()" id="btn-signup">Join the Pool</button>
     </div>
     <div class="auth-error" id="auth-error"></div>
     <div class="auth-msg" id="auth-msg"></div>
@@ -357,7 +374,21 @@ nav {
         <div class="hero-stat"><div class="hero-stat-num" id="stat-picks">—</div><div class="hero-stat-label">Picks submitted</div></div>
       </div>
     </div>
-    <div class="section">
+
+    <div class="prize-pool-box" id="prize-pool-box" style="max-width:480px;margin:0 auto 2rem;display:none;">
+      <div>
+        <div class="prize-pool-label">💰 Current Prize Pool</div>
+        <div class="prize-pool-total" id="prize-pool-total">$0</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">
+          <span id="paid-count">0</span> paid × $20 entry
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--text2);text-align:right;line-height:1.8">
+        🥇 1st: <strong style="color:var(--green)" id="prize-1st">$0</strong><br>
+        🥈 2nd: <strong style="color:#c0c0c0" id="prize-2nd">$0</strong><br>
+        🥉 3rd: <strong style="color:#cd7f32" id="prize-3rd">$0</strong>
+      </div>
+    </div>    <div class="section">
       <div class="section-header">
         <div class="section-title">Live Standings</div>
         <span class="badge" id="standings-badge">Loading…</span>
@@ -402,11 +433,21 @@ nav {
         <div class="bonus-item"><div class="bonus-emoji">📅</div><div class="bonus-info"><div class="bonus-nome">Picks On Time</div><div class="bonus-desc">All picks submitted before each round kicks off</div></div><div class="bonus-pts">+2/round</div></div>
       </div>
       <div style="margin-top:2rem;background:var(--surface);border-radius:var(--radius-lg);padding:20px;border:1px solid var(--border)">
-        <div style="font-weight:700;margin-bottom:10px">💰 Prize Distribution</div>
+        <div style="font-weight:700;margin-bottom:4px">💰 Prize Distribution</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Entry fee: <strong style="color:var(--green)">$20/person</strong> — Prize pool grows as participants join</div>
         <div style="display:flex;flex-direction:column;gap:8px">
-          <div style="display:flex;justify-content:space-between;font-size:14px"><span>🥇 1st place</span><span style="color:var(--green);font-weight:700">60% of prize pool</span></div>
-          <div style="display:flex;justify-content:space-between;font-size:14px"><span>🥈 2nd place</span><span style="color:#c0c0c0;font-weight:700">25% of prize pool</span></div>
-          <div style="display:flex;justify-content:space-between;font-size:14px"><span>🥉 3rd place</span><span style="color:#cd7f32;font-weight:700">15% of prize pool</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:14px;align-items:center">
+            <span>🥇 1st place <span style="font-size:11px;color:var(--text3)">(60%)</span></span>
+            <span style="color:var(--green);font-weight:700" id="rules-prize-1st">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:14px;align-items:center">
+            <span>🥈 2nd place <span style="font-size:11px;color:var(--text3)">(25%)</span></span>
+            <span style="color:#c0c0c0;font-weight:700" id="rules-prize-2nd">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:14px;align-items:center">
+            <span>🥉 3rd place <span style="font-size:11px;color:var(--text3)">(15%)</span></span>
+            <span style="color:#cd7f32;font-weight:700" id="rules-prize-3rd">—</span>
+          </div>
         </div>
         <div style="margin-top:12px;font-size:12px;color:var(--text3);border-top:1px solid var(--border);padding-top:10px">Tiebreaker: (1) most exact scores, (2) most correct results, (3) draw.</div>
       </div>
@@ -450,7 +491,7 @@ nav {
           </div>
         </div>
         <table class="participants-table">
-          <thead><tr><th>Name</th><th>Picks</th><th>Points</th><th>Status</th></tr></thead>
+          <thead><tr><th>Name</th><th>Picks</th><th>Points</th><th>Paid?</th><th>Status</th></tr></thead>
           <tbody id="admin-participants-tbody"><tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px">Loading…</td></tr></tbody>
         </table>
       </div>
@@ -602,17 +643,64 @@ async function loadAdminStats() {
   const { data: points } = await sb.from('leaderboard').select('id, total_points');
   const ptMap = {}; (points||[]).forEach(r => ptMap[r.id] = r.total_points);
   const pcMap = {}; (pickCounts||[]).forEach(r => { pcMap[r.user_id] = (pcMap[r.user_id]||0)+1; });
+  // Buscar status de pagamento
+  const { data: paidData } = await sb.from('profiles').select('id, has_paid');
+  const paidMap = {}; (paidData||[]).forEach(r => { paidMap[r.id] = r.has_paid; });
+
+  // Atualizar prize pool
+  const paidCount = (paidData||[]).filter(r => r.has_paid).length;
+  updatePrizePool(paidCount);
+
   const tbody = document.getElementById('admin-participants-tbody');
   tbody.innerHTML = (profs||[]).map(p => {
     const picks = pcMap[p.id] || 0;
+    const paid = paidMap[p.id] || false;
     const status = picks > 0 ? 'ok' : 'warn';
     return `<tr>
       <td>${escHtml(p.full_name)}</td>
       <td>${picks}</td>
       <td style="color:var(--green);font-weight:600">${ptMap[p.id]||0} pts</td>
+      <td><button class="paid-btn ${paid?'yes':'no'}" onclick="togglePaid('${p.id}',${paid})">${paid?'✅ Paid':'❌ Pending'}</button></td>
       <td><span class="dot ${status}"></span>${status==='ok'?'Active':'No picks yet'}</td>
     </tr>`;
   }).join('');
+}
+
+// ── Toggle pagamento ───────────────────────────────────────────
+async function togglePaid(userId, currentPaid) {
+  const { error } = await sb.from('profiles').update({ has_paid: !currentPaid }).eq('id', userId);
+  if (error) { toast('❌', error.message); return; }
+  toast(currentPaid ? '⏳' : '✅', currentPaid ? 'Marcado como pendente' : 'Marcado como pago!');
+  await loadAdminStats();
+}
+
+// ── Prize pool ─────────────────────────────────────────────────
+function updatePrizePool(paidCount) {
+  const total = paidCount * 20;
+  const p1 = Math.round(total * 0.60);
+  const p2 = Math.round(total * 0.25);
+  const p3 = Math.round(total * 0.15);
+  const fmt = n => '$' + n;
+  // Hero
+  const box = document.getElementById('prize-pool-box');
+  if (box) box.style.display = total > 0 ? 'flex' : 'none';
+  const el = document.getElementById('prize-pool-total');
+  if (el) el.textContent = fmt(total);
+  const pc = document.getElementById('paid-count');
+  if (pc) pc.textContent = paidCount;
+  const e1 = document.getElementById('prize-1st');
+  if (e1) e1.textContent = fmt(p1);
+  const e2 = document.getElementById('prize-2nd');
+  if (e2) e2.textContent = fmt(p2);
+  const e3 = document.getElementById('prize-3rd');
+  if (e3) e3.textContent = fmt(p3);
+  // Rules
+  const r1 = document.getElementById('rules-prize-1st');
+  if (r1) r1.textContent = total > 0 ? fmt(p1) + ' (60%)' : '60% of pool';
+  const r2 = document.getElementById('rules-prize-2nd');
+  if (r2) r2.textContent = total > 0 ? fmt(p2) + ' (25%)' : '25% of pool';
+  const r3 = document.getElementById('rules-prize-3rd');
+  if (r3) r3.textContent = total > 0 ? fmt(p3) + ' (15%)' : '15% of pool';
 }
 
 // ── Realtime subscriptions ─────────────────────────────────────
@@ -626,6 +714,13 @@ function subscribeRealtime() {
 // ── Render Leaderboard ─────────────────────────────────────────
 function renderLeaderboard(data) {
   document.getElementById('stat-participants').textContent = data.length;
+  // Atualizar prize pool se ainda não foi carregado pelo admin
+  if (!document.getElementById('prize-pool-total').textContent.includes('$')) {
+    sb.from('profiles').select('id, has_paid').then(({ data: pd }) => {
+      const paidCount = (pd||[]).filter(r => r.has_paid).length;
+      updatePrizePool(paidCount);
+    });
+  }
   document.getElementById('stat-picks').textContent = data.reduce((s,r) => s + parseInt(r.picks_submitted||0), 0);
   document.getElementById('standings-badge').textContent = data.length + ' participants';
   const list = document.getElementById('ranking-list');
