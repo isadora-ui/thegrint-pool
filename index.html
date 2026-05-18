@@ -1044,7 +1044,8 @@ const BONUS_DEFS = [
     key: 'top_scorer',
     icon: '👟', title: 'Top Scorer', pts: '+20',
     desc: 'Who will score the most goals in the tournament?',
-    type: 'player'
+    type: 'player',
+    comingSoon: true
   },
   {
     key: 'cinderella',
@@ -1082,6 +1083,22 @@ function renderBonusPicks() {
     const opts = options.map(o =>
       `<option value="${escHtml(o)}" ${val===o?'selected':''}>${escHtml(o)}</option>`
     ).join('');
+
+    if (b.comingSoon) {
+      return `<div class="bonus-pick-card">
+        <div class="bonus-pick-header">
+          <div class="bonus-pick-icon">${b.icon}</div>
+          <div>
+            <div class="bonus-pick-title">${b.title}</div>
+            <div class="bonus-pick-desc">${b.desc}</div>
+          </div>
+          <div class="bonus-pick-pts">${b.pts}</div>
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text3);text-align:center;">
+          ⏳ Coming soon — unlocks after official squads are announced on June 2
+        </div>
+      </div>`;
+    }
 
     return `<div class="bonus-pick-card ${val?'saved':''}">
       <div class="bonus-pick-header">
