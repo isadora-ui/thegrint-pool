@@ -587,9 +587,17 @@ async function signIn() {
   if (!email || !pass) { setAuthError('Please fill in all fields.'); return; }
   const btn = document.getElementById('btn-signin');
   btn.disabled = true; btn.textContent = 'Signing in…';
-  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
   btn.disabled = false; btn.textContent = 'Sign In';
-  if (error) setAuthError(error.message);
+  if (error) { setAuthError(error.message); return; }
+  // Fallback: se onAuthStateChange não disparar (ex: cache do SW), forçamos manualmente
+  if (data?.session?.user) {
+    currentUser = data.session.user;
+    await loadProfile();
+    showApp();
+    await loadAll();
+    subscribeRealtime();
+  }
 }
 
 async function signUp() {
