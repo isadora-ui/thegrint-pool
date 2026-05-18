@@ -292,6 +292,36 @@ nav {
 }
 .prize-pool-total { font-size:32px; font-weight:800; color:var(--green); letter-spacing:-1px; }
 .prize-pool-label { font-size:12px; color:var(--text3); text-transform:uppercase; letter-spacing:0.1em; }
+
+.bonus-pick-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:18px 20px; margin-bottom:12px;
+  transition:border-color 0.2s;
+}
+.bonus-pick-card.saved { border-color:var(--border2); }
+.bonus-pick-header { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+.bonus-pick-icon { font-size:26px; }
+.bonus-pick-title { font-weight:700; font-size:15px; }
+.bonus-pick-desc { font-size:12px; color:var(--text2); margin-top:2px; }
+.bonus-pick-pts { margin-left:auto; font-size:22px; font-weight:700; color:var(--green); }
+.bonus-select {
+  width:100%; background:var(--bg3); border:1px solid var(--border);
+  border-radius:8px; color:var(--text); font-family:inherit; font-size:14px;
+  padding:10px 14px; transition:border-color 0.2s;
+}
+.bonus-select:focus { outline:none; border-color:var(--green); }
+.bonus-select:disabled { opacity:0.4; cursor:not-allowed; }
+.bonus-saved-label {
+  margin-top:8px; font-size:12px; color:var(--green);
+  display:none; align-items:center; gap:6px;
+}
+.bonus-saved-label.show { display:flex; }
+.bonus-lock-msg {
+  margin-top:8px; font-size:12px; color:var(--text3);
+  text-align:center; padding:6px; background:var(--bg3);
+  border-radius:6px; display:none;
+}
+.bonus-lock-msg.show { display:block; }
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:var(--bg2)}
 ::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:3px}
@@ -353,6 +383,7 @@ nav {
       <button class="nav-tab active" onclick="showPage('standings',this)">Standings</button>
       <button class="nav-tab" onclick="showPage('matches',this)">Matches</button>
       <button class="nav-tab" onclick="showPage('rules',this)">Rules</button>
+      <button class="nav-tab" onclick="showPage('bonus',this)">⭐ Bonus</button>
       <button class="nav-tab admin-only" onclick="showPage('admin',this)" style="display:none">Admin</button>
     </div>
     <div class="nav-right">
@@ -456,6 +487,23 @@ nav {
           <strong style="color:var(--green)">Submission deadline:</strong> Picks lock automatically <strong>1 hour before</strong> each match kicks off.<br><br>
           <strong style="color:var(--green)">Knockout rounds:</strong> Scores based on 90-minute full-time result only. Extra time and penalties do not count.
         </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- BONUS PICKS -->
+  <div class="page" id="page-bonus">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">⭐ Bonus Picks</div>
+        <span class="badge" id="bonus-badge">0/5 saved</span>
+      </div>
+      <div style="background:rgba(167,207,63,0.06);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:1.5rem;font-size:13px;color:var(--text2);line-height:1.7">
+        🔒 Bonus picks <strong style="color:var(--green)">lock on June 11 when the tournament starts</strong>. Submit yours before the opening match!
+      </div>
+      <div id="bonus-list">
+        <div class="loading"><div class="spinner"></div>Loading…</div>
       </div>
     </div>
   </div>
@@ -601,7 +649,7 @@ function showApp() {
 
 // ── Load all data ──────────────────────────────────────────────
 async function loadAll() {
-  await Promise.all([loadMatches(), loadLeaderboard(), loadMyPicks(), loadAdminStats()]);
+  await Promise.all([loadMatches(), loadLeaderboard(), loadMyPicks(), loadAdminStats(), loadBonusPicks()]);
 }
 
 async function loadMatches() {
@@ -902,6 +950,7 @@ function showPage(name, btn) {
   document.getElementById('page-' + name).classList.add('active');
   if (btn) btn.classList.add('active');
   if (name === 'admin') loadAdminStats();
+  if (name === 'bonus') renderBonusPicks();
 }
 
 // ── Toast ──────────────────────────────────────────────────────
@@ -913,6 +962,182 @@ function toast(icon, msg) {
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+
+// ── BONUS PICKS ──────────────────────────────────────────────────────────
+const BONUS_TOURNAMENT_LOCK = new Date('2026-06-11T19:00:00Z'); // 1ª partida UTC
+
+const WC_TEAMS = [
+  'Algeria','Argentina','Australia','Austria','Belgium','Bosnia & Herzegovina',
+  'Brazil','Canada','Cape Verde','Colombia','Croatia','Curaçao','Czechia',
+  'DR Congo','Ecuador','Egypt','England','France','Germany','Ghana',
+  'Haiti','Iran','Iraq','Ivory Coast','Japan','Jordan','Mexico',
+  'Morocco','Netherlands','New Zealand','Norway','Panama','Paraguay',
+  'Portugal','Qatar','Saudi Arabia','Scotland','Senegal','South Africa',
+  'South Korea','Spain','Sweden','Switzerland','Tunisia','Turkey',
+  'Uruguay','USA','Uzbekistan'
+];
+
+const TOP_SCORERS = [
+  // Argentina
+  'Lionel Messi (ARG)','Lautaro Martínez (ARG)',
+  // Brazil
+  'Vinicius Jr (BRA)','Rodrygo (BRA)','Raphinha (BRA)',
+  // France
+  'Kylian Mbappé (FRA)','Antoine Griezmann (FRA)',
+  // England
+  'Harry Kane (ENG)','Bukayo Saka (ENG)','Jude Bellingham (ENG)',
+  // Portugal
+  'Cristiano Ronaldo (POR)','Rafael Leão (POR)',
+  // Germany
+  'Florian Wirtz (GER)','Kai Havertz (GER)',
+  // Spain
+  'Álvaro Morata (ESP)','Pedri (ESP)','Ferran Torres (ESP)',
+  // Netherlands
+  'Memphis Depay (NED)','Cody Gakpo (NED)',
+  // Norway
+  'Erling Haaland (NOR)',
+  // USA
+  'Christian Pulisic (USA)','Ricardo Pepi (USA)',
+  // Mexico
+  'Santiago Giménez (MEX)',
+  // Uruguay
+  'Darwin Núñez (URU)',
+  // Morocco
+  'Achraf Hakimi (MAR)','Youssef En-Nesyri (MAR)',
+  // Colombia
+  'Luis Díaz (COL)','Falcao (COL)',
+  // Ecuador
+  'Enner Valencia (ECU)',
+  // Japan
+  'Takumi Minamino (JPN)','Kaoru Mitoma (JPN)',
+  // South Korea
+  'Son Heung-min (KOR)',
+  // Senegal
+  'Sadio Mané (SEN)',
+  // Other
+  'Robert Lewandowski (POL — now other)','Ivan Toney (ENG)',
+];
+TOP_SCORERS.sort();
+
+const BONUS_DEFS = [
+  {
+    key: 'champion',
+    icon: '🏆', title: 'Tournament Champion', pts: '+30',
+    desc: 'Which team will lift the trophy on July 19?',
+    type: 'team'
+  },
+  {
+    key: 'finalist_a',
+    icon: '🥇', title: 'Finalist #1', pts: '+15',
+    desc: 'One of the two teams reaching the grand final (Both Finalists bonus)',
+    type: 'team'
+  },
+  {
+    key: 'finalist_b',
+    icon: '🥈', title: 'Finalist #2', pts: '+15',
+    desc: 'The other team reaching the grand final',
+    type: 'team'
+  },
+  {
+    key: 'top_scorer',
+    icon: '👟', title: 'Top Scorer', pts: '+20',
+    desc: 'Who will score the most goals in the tournament?',
+    type: 'player'
+  },
+  {
+    key: 'cinderella',
+    icon: '😮', title: 'Cinderella Team', pts: '+10',
+    desc: 'The underdog that advances furthest from Round of 16 onward',
+    type: 'team'
+  },
+];
+
+let myBonusPicks = {};   // { champion: 'Brazil', top_scorer: '...', ... }
+
+async function loadBonusPicks() {
+  if (!currentUser) return;
+  const { data } = await sb.from('bonus_picks').select('*').eq('user_id', currentUser.id).single();
+  if (data) {
+    myBonusPicks = data;
+  }
+  renderBonusPicks();
+}
+
+function renderBonusPicks() {
+  const now = new Date();
+  const locked = now >= BONUS_TOURNAMENT_LOCK || !currentProfile?.has_paid;
+  const lockReason = !currentProfile?.has_paid
+    ? '💳 Payment pending — bonus picks unlock after admin confirms your entry'
+    : '🔒 Tournament has started — bonus picks are locked';
+
+  const list = document.getElementById('bonus-list');
+  let savedCount = 0;
+
+  list.innerHTML = BONUS_DEFS.map(b => {
+    const val = myBonusPicks[b.key] || '';
+    if (val) savedCount++;
+    const options = b.type === 'team' ? WC_TEAMS : TOP_SCORERS;
+    const opts = options.map(o =>
+      `<option value="${escHtml(o)}" ${val===o?'selected':''}>${escHtml(o)}</option>`
+    ).join('');
+
+    return `<div class="bonus-pick-card ${val?'saved':''}">
+      <div class="bonus-pick-header">
+        <div class="bonus-pick-icon">${b.icon}</div>
+        <div>
+          <div class="bonus-pick-title">${b.title}</div>
+          <div class="bonus-pick-desc">${b.desc}</div>
+        </div>
+        <div class="bonus-pick-pts">${b.pts}</div>
+      </div>
+      <select class="bonus-select" id="bonus-${b.key}" ${locked?'disabled':''}
+        onchange="saveBonusPick('${b.key}', this.value)">
+        <option value="">— Select ${b.type === 'team' ? 'a team' : 'a player'} —</option>
+        ${opts}
+      </select>
+      <div class="bonus-saved-label ${val?'show':''}" id="bonus-saved-${b.key}">
+        ✅ Pick saved
+      </div>
+      <div class="bonus-lock-msg ${locked?'show':''}">
+        ${lockReason}
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('bonus-badge').textContent = savedCount + '/5 saved';
+  // Nota: Picks On Time é calculado automaticamente — sem input necessário
+  const noteHtml = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;margin-top:4px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="font-size:26px">📅</div>
+      <div>
+        <div style="font-weight:700;font-size:15px">Picks On Time <span style="color:var(--green)">+2/round</span></div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">Awarded automatically when you submit all picks before each round deadline. No action needed!</div>
+      </div>
+    </div>
+  </div>`;
+  list.innerHTML += noteHtml;
+}
+
+async function saveBonusPick(key, value) {
+  if (!value) return;
+  if (!currentProfile?.has_paid) { toast('💳','Payment pending — bonus picks locked'); return; }
+  const now = new Date();
+  if (now >= BONUS_TOURNAMENT_LOCK) { toast('🔒','Tournament has started — picks are locked'); return; }
+
+  const upsertData = { user_id: currentUser.id, [key]: value };
+  const { error } = await sb.from('bonus_picks').upsert(upsertData, { onConflict: 'user_id' });
+  if (error) { toast('❌', error.message); return; }
+
+  myBonusPicks[key] = value;
+  document.getElementById(`bonus-saved-${key}`).classList.add('show');
+  document.getElementById(`bonus-${key}`).closest('.bonus-pick-card').classList.add('saved');
+
+  // Atualizar badge
+  const saved = BONUS_DEFS.filter(b => myBonusPicks[b.key]).length;
+  document.getElementById('bonus-badge').textContent = saved + '/5 saved';
+  toast('⭐', 'Bonus pick saved!');
 }
 
 // ── Util ───────────────────────────────────────────────────────
