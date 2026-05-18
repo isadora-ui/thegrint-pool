@@ -670,7 +670,12 @@ async function loadAdminStats() {
 async function togglePaid(userId, currentPaid) {
   const { error } = await sb.from('profiles').update({ has_paid: !currentPaid }).eq('id', userId);
   if (error) { toast('❌', error.message); return; }
-  toast(currentPaid ? '⏳' : '✅', currentPaid ? 'Marcado como pendente' : 'Marcado como pago!');
+  toast(currentPaid ? '⏳' : '✅', currentPaid ? 'Marked as pending' : 'Marked as paid! Picks unlocked ✅');
+  // Atualizar currentProfile se for o próprio usuário
+  if (userId === currentUser?.id) {
+    currentProfile = { ...currentProfile, has_paid: !currentPaid };
+    renderMatches(currentFilter);
+  }
   await loadAdminStats();
 }
 
@@ -763,12 +768,17 @@ function renderMatches(filter) {
 function renderMatchCard(m, now) {
   const kick = new Date(m.kickoff_at);
   const lockTime = new Date(kick.getTime() - 60*60*1000);
-  const locked = m.status !== 'upcoming' || now >= lockTime;
+  const notPaid = !currentProfile?.has_paid;
+  const locked = m.status !== 'upcoming' || now >= lockTime || notPaid;
   const myP = myPicks[m.id];
   const pts = calcPoints(m, myP);
   const ptsClass = pts === null ? 'pending' : pts === 10 ? 'exact' : pts === 5 ? 'result' : m.status === 'finished' ? 'wrong' : 'pending';
   const ptsLabel = pts !== null ? (pts===10?'🎯 +10 pts':pts===5?'✅ +5 pts':'❌ 0 pts') : '— pts';
   const statusLabel = m.status==='live'?'🔴 Live':m.status==='finished'?'Finished':'⏰ '+kick.toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  const payWall = notPaid && m.status === 'upcoming' ? `
+    <div style="margin-top:8px;background:rgba(255,68,68,0.08);border:1px solid rgba(255,68,68,0.25);border-radius:8px;padding:9px 14px;font-size:12px;color:var(--red);text-align:center;">
+      💳 Payment pending — picks unlock after the admin confirms your $20 entry
+    </div>` : '';
   return `<div class="jogo-card ${m.status}">
     <div class="jogo-meta">
       <span class="jogo-grupo">${escHtml(m.match_group)}</span>
@@ -790,7 +800,8 @@ function renderMatchCard(m, now) {
       </div>
       <span class="pick-pts ${ptsClass}">${ptsLabel}</span>
     </div>
-    ${!locked ? `<button class="btn-submit-pick" onclick="submitPick(${m.id})">Submit pick</button>` : ''}
+    ${(!locked && !notPaid) ? `<button class="btn-submit-pick" onclick="submitPick(${m.id})">Submit pick</button>` : ''}
+    ${payWall}
   </div>`;
 }
 
@@ -811,6 +822,11 @@ function updateMyPicksBadge() {
 
 // ── Submit Pick ────────────────────────────────────────────────
 async function submitPick(matchId) {
+  // Bloquear se não pagou
+  if (!currentProfile?.has_paid) {
+    toast('💳', 'Your pick is locked until payment is confirmed by the admin.');
+    return;
+  }
   const pA = parseInt(document.getElementById(`pa-${matchId}`).value);
   const pB = parseInt(document.getElementById(`pb-${matchId}`).value);
   if (isNaN(pA) || isNaN(pB)) { toast('⚠️','Fill in both scores'); return; }
